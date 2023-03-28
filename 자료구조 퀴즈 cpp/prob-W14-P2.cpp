@@ -1,0 +1,226 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#define NOT_EXPLORED 0
+#define DISCOVERY 1
+#define BACK 2
+#define mappingSize 1000
+
+using namespace std;
+
+class Vertex
+{
+public:
+    int data;
+    int degree;
+    bool visited;
+    vector <Vertex*> adj_list;
+
+    Vertex(int data)
+    {
+        this->data = data;
+        this->degree = 0;
+        this->visited = false;
+    }
+};
+
+class Edge
+{
+public:
+    Vertex* src;
+    Vertex* dst;
+    string data;
+    int edge_stat;
+
+    Edge(Vertex* src, Vertex* dst)
+    {
+        this->src = src;
+        this->dst = dst;
+        this->edge_stat = NOT_EXPLORED;
+    }
+};
+
+class Graph
+{
+private:
+    vector<Vertex*> vertex_list;
+    vector<Edge*> edge_list;
+    int vertexSize;
+    int mappingTable[mappingSize];
+    Edge*** edgeMatrix;
+    queue<Vertex*> bfsQueue;
+public:
+    Graph() {
+        this->vertexSize = 0;
+
+        for (int i = 0; i < mappingSize; i++) mappingTable[i] = -1;
+
+        edgeMatrix = new Edge * *[mappingSize];
+        for (int i = 0; i < mappingSize; i++) {
+            edgeMatrix[i] = new Edge * [mappingSize];
+            for (int j = 0; j < mappingSize; j++)
+                edgeMatrix[i][j] = NULL;
+        }
+    }
+
+    Vertex* findvertex(int data)
+    {
+        Vertex* v = NULL;
+        for (int i = 0; i < vertex_list.size(); i++)
+        {
+            if (vertex_list[i]->data == data)
+            {
+                v = vertex_list[i];
+                break;
+            }
+        }
+        return v;
+    }
+    Edge* findedge(Vertex* src, Vertex* dst)
+    {
+        Edge* e = NULL;
+        int source = -1, destination = -1;
+        for (int i = 0; i < vertexSize; i++)
+        {
+            if (mappingTable[i] == src->data)
+                source = i;
+            if (mappingTable[i] == dst->data)
+                destination = i;
+        }
+        if (edgeMatrix[source][destination] != NULL)
+            e = edgeMatrix[source][destination];
+        return e;
+    }
+
+    void insert_vertex(int data)
+    {
+        if (findvertex(data) == NULL)
+        {
+            Vertex* new_v = new Vertex(data);
+            vertex_list.push_back(new_v);
+            this->mappingTable[vertexSize] = data;
+            this->vertexSize++;
+        }
+    }
+    void insert_edge(int src_data, int dst_data)
+    {
+        Vertex* src = findvertex(src_data);
+        Vertex* dst = findvertex(dst_data);
+        int source = -1, destination = -1;
+        for (int i = 0; i < vertexSize; i++)
+        {
+            if (mappingTable[i] == src_data)
+                source = i;
+            if (mappingTable[i] == dst_data)
+                destination = i;
+        }
+        if (findedge(src, dst) == NULL)
+        {
+            Edge* new_e = new Edge(src, dst);
+            edge_list.push_back(new_e);
+            src->adj_list.push_back(dst);
+            dst->adj_list.push_back(src);
+            src->degree++;
+            dst->degree++;
+            edgeMatrix[source][destination] = new_e;
+            edgeMatrix[destination][source] = new_e;
+        }
+        else
+            cout << -1 << endl;
+
+    }
+
+    void printDiscoveryEdge()
+    {
+        for (int i = 0; i < edge_list.size(); i++)
+        {
+            if (edge_list[i]->edge_stat == DISCOVERY)
+                cout << edge_list[i]->data << " ";
+        }
+        cout << endl;
+    }
+    void pritBackEdge()
+    {
+        for (int i = 0; i < edge_list.size(); i++)
+        {
+            if (edge_list[i]->edge_stat == BACK)
+                cout << edge_list[i]->data << " ";
+        }
+        cout << endl;
+    }
+
+    void DFS(Vertex* v)
+    {
+        v->visited = true;
+        cout << v->data << " ";
+
+        for (int i = 0; i < v->adj_list.size(); i++)
+        {
+            Vertex* u = v->adj_list[i];
+            if (u->visited == false)
+            {
+                this->findedge(v, u)->edge_stat = DISCOVERY;
+                DFS(u);
+            }
+            else
+            {
+                if (this->findedge(v, u)->edge_stat != DISCOVERY)
+                    this->findedge(v, u)->edge_stat = BACK;
+            }
+        }
+    }
+    void BFS(Vertex* s)
+    {
+        bfsQueue.push(s);
+        s->visited = true;
+
+        while (bfsQueue.empty() != true)
+        {
+            Vertex* v = bfsQueue.front();
+            bfsQueue.pop();
+            cout << v->data << " ";
+
+            for (int i = 0; i < v->adj_list.size(); i++)
+            {
+                if (v->adj_list[i]->visited == false)
+                {
+                    bfsQueue.push(v->adj_list[i]);
+                    v->adj_list[i]->visited = true;
+                    findedge(v, v->adj_list[i])->edge_stat = DISCOVERY;
+                }
+                else
+                {
+                    if (findedge(v, v->adj_list[i])->edge_stat != DISCOVERY)
+                        findedge(v, v->adj_list[i])->edge_stat = BACK;
+                }
+            }
+        }
+
+    }
+};
+
+int main()
+{
+    Graph* newGraph = new Graph();
+
+    int n, m, a;
+    cin >> n >> m >> a;
+
+    while (n--)
+    {
+        int u;
+        cin >> u;
+        newGraph->insert_vertex(u);
+    }
+    while (m--)
+    {
+        int u, v;
+        cin >> u >> v;
+        newGraph->insert_edge(u, v);
+    }
+
+    newGraph->BFS(newGraph->findvertex(a));
+    cout << endl;
+
+    return 0;
+}
